@@ -64,10 +64,19 @@ For many folds, we may want to specify that most creases are kept at the same
 angle they were before the fold, and we only list a much smaller set of creases
 that will change their angle.
 
-We may find that there are some degeneracies in the solution, even if all but three
-crease angles are known.  In that case, it will be useful to know which folds
-are intended to be mountain folds and which folds are intended to be valley
-folds.
+We may find that there are some degeneracies in the solution, even if all but
+three crease angles are known.  In that case, it will be useful to know which
+folds are intended to be mountain folds and which folds are intended to be
+valley folds.  If we know three edge arc lengths of a triangle, then there are
+two solutions (where vertex indices that were ordered counter-clockwise [on the
+unfolded paper as seen from the top] proceed in a clockwise or a
+counterclockwise solution on the sphere, again as seen from the top).  It turns
+out that we need to consider both solutions.  Because we want to be able to take
+spherical N-gons and progressively reduce N down to 3, the sides of the final
+triangle can have a handedness that they would not otherwise have, if they were
+not based on multiple arcs.  This means we will be able to tell the difference
+between the clockwise and counter-clockwise solutions.  We will also find that
+both solutions can be valid (with the paper not self-intersecting) answers.
 
 Now, if we specify enough angles at one node that all crease angles are known,
 then those crease angles are now known at the nodes at other ends of each of
@@ -90,9 +99,9 @@ These data structures will be useful in the code.
 * Triangles (triples of node indices) useful for plotting later on, but also for
   calculating 3D locations from crease angles.
 
-Because the topology of the nodes and creases do not change, the edges (pairs of
+Because the topology of the nodes and creases does not change, the edges (pairs of
 indices) and triangles (triples of indices) will not change during the folding
-process.  Only the node locations will change.
+process.  Only the 3D node locations will change.
 
 The list of edges will have to be augmented by a constrained Delaunay
 triangulation to make sure that the square of paper is broken down into
