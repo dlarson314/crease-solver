@@ -2,7 +2,7 @@
 Allow 3D animations of origami folding parameterized by crease angles.
 
 This project is intended to be a back-end for creating 3D animations of origami
-being folded.  
+being folded.  I'm writing the README first; code will come later, if at all.
 
 ## Setup 
 
@@ -27,7 +27,7 @@ on that node (a sphere small enough that its radius is much smaller than the
 length of any crease meeting that node).  The intersection of that sphere and
 the paper will be a spherical polygon.  In between creases, the flat paper will
 intersect the sphere in a segment of a geodesic or great circle; these are the
-edges of the polygon, and their "lengths" are the angles that adjacent creases
+edges of the polygon, and their arc lengths are the angles that adjacent creases
 make at the node.  The creases intersect the sphere at the vertices of the
 spherical polygon.  The internal angles of the polygon correspond to the crease
 angles.
@@ -43,7 +43,58 @@ the "interior" of the spherical polygon is the region above the paper, and the
 This makes the crease angles correspond directly to the interior angles of the
 polygon's vertices.
 
+Our problem will involve finding the angles of the polygon, when the arc lengths
+of the spherical polygon edges are known.  The problem is directly solvable when
+N=3, and we can apply formulas for spherical triangles (assuming arc lengths for
+triangle edges allow a solution to exist).  When N > 3, there will typically be
+many solutions for crease angles.  At each vertex, we will therefore want to
+specify enough crease angles that there are only three unknown angles.  When a
+crease angle is known/specified, the two edges adjacent to a known crease angle
+can be replaced with a single edge whose arc length we can calculate.  This
+allows us to replace a problem with a spherical N-gon with a spherical
+(N-1)-gon.  
 
+To animate an origami fold, we will typically want to specify only one degree of
+freedom, or one crease angle, which will increase or decrease with time.  If we
+have a vertex that requires many crease angles to be specified, we can either
+hold some of them fixed at 180 degrees, or specify that several changing crease
+angles are equal to each other.
+
+We may find that there are some degeneracies in the solution, even if all but three
+crease angles are known.  In that case, it will be useful to know which folds
+are intended to be mountain folds and which folds are intended to be valley
+folds.
+
+Now, if we specify enough angles at one node that all crease angles are known,
+then those crease angles are now known at the nodes at other ends of each of
+these creases, and the solution can propagate outward from a single node.
+To solve for the entire set of crease angles, we will need to search for a
+solvable node (with only 3 unknown crease angles), solve it, and then check to
+see if the new known crease angles allow crease angle solutions at other nodes.
+
+## Data Structures
+
+These data structures will be useful in the code.
+
+* Original node locations in 2D (Z = 0)
+* New node locations in 3D, at a given time step
+* List of edges (pairs of node indices) to represent creases
+* Crease angle for each edge
+* For each node, a list of node neighbors, listed counter-clockwise as seen from
+  "above" (on the +Z axis, looking in the -Z direction, at the original unfolded
+  paper in the XY plane).
+* Triangles (triples of node indices) strictly for plotting later on
+
+Because the topology of the nodes and creases do not change, the edges (pairs of
+indices) and triangles (triples of indices) will not change during the folding
+process.  Only the node locations will change.
+
+The list of edges will have to be augmented by a constrained Delaunay
+triangulation to make sure that the square of paper is broken down into
+triangles.  New edges/creases formed in this process can be kept at 180 degrees
+throughout the fold; they don't have to bend.  They only exist for convenience
+of the person who will be rendering the origami later on a graphics card,
+because they will only have to deal with triangles.
 
 
 
