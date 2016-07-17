@@ -55,7 +55,7 @@ def plot_creasepattern(node_list, crease_list, crease_types=None):
         # range(crease_list.shape[0]):
         x = node_list[crease_list[i,:],0]
         y = node_list[crease_list[i,:],1]
-        print t.upper()
+        #print t.upper()
         if t.upper() == 'M':
             mpl.plot(x, y, 'k')
         elif t.upper() == 'V':
@@ -67,14 +67,52 @@ def plot_creasepattern(node_list, crease_list, crease_types=None):
     mpl.show()
 
 
+def get_neighbors(node_list, crease_list):
+    neighbors = {}
+    for i in range(crease_list.shape[0]):    
+        node0 = crease_list[i,0]
+        node1 = crease_list[i,1]
+        if node0 in neighbors:
+            neighbors[node0].add(node1)
+        else:
+            neighbors[node0] = set([node1])
+        if node1 in neighbors:
+            neighbors[node1].add(node0)
+        else:
+            neighbors[node1] = set([node0])
+    
+    nodes = neighbors.keys()
+    for n in nodes:
+        node_neighbors = np.array(list(neighbors[n]), dtype='int32')
+        vectors = node_list[node_neighbors,:]
+        vectors = vectors - np.tile(node_list[n,:], (len(node_neighbors),1))
+        angles = np.arctan2(vectors[:,1], vectors[:,0])
+        indices = np.argsort(angles)
+        node_neighbors = node_neighbors[indices]
+        neighbors[n] = node_neighbors
+
+    return neighbors
+
+
 def foo():
     node_list, crease_list, crease_types = load_creasepattern('test.creasepattern')
-    print node_list
-    print crease_list
+    #print node_list
+    #print crease_list
+
+    neighbors = get_neighbors(node_list, crease_list) 
+    print neighbors
+
     plot_creasepattern(node_list, crease_list, crease_types)
+
+
+
 
     
 
 
 if __name__ == "__main__":
     foo()
+
+
+
+
