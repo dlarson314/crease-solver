@@ -83,7 +83,8 @@ These data structures will be useful in the code.
 * For each node, a list of node neighbors, listed counter-clockwise as seen from
   "above" (on the +Z axis, looking in the -Z direction, at the original unfolded
   paper in the XY plane).
-* Triangles (triples of node indices) strictly for plotting later on
+* Triangles (triples of node indices) useful for plotting later on, but also for
+  calculating 3D locations from crease angles.
 
 Because the topology of the nodes and creases do not change, the edges (pairs of
 indices) and triangles (triples of indices) will not change during the folding
@@ -92,9 +93,9 @@ process.  Only the node locations will change.
 The list of edges will have to be augmented by a constrained Delaunay
 triangulation to make sure that the square of paper is broken down into
 triangles.  New edges/creases formed in this process can be kept at 180 degrees
-throughout the fold; they don't have to bend.  They only exist for convenience
-of the person who will be rendering the origami later on a graphics card,
-because they will only have to deal with triangles.
+throughout the fold; they don't have to bend.  They only exist for the
+convenience of the person who will be rendering the origami later on a graphics
+card, because they will only have to deal with triangles.
 
 
 
