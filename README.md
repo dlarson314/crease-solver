@@ -60,6 +60,10 @@ have a vertex that requires many crease angles to be specified, we can either
 hold some of them fixed at 180 degrees, or specify that several changing crease
 angles are equal to each other.
 
+For many folds, we may want to specify that most creases are kept at the same
+angle they were before the fold, and we only list a much smaller set of creases
+that will change their angle.
+
 We may find that there are some degeneracies in the solution, even if all but three
 crease angles are known.  In that case, it will be useful to know which folds
 are intended to be mountain folds and which folds are intended to be valley
@@ -97,7 +101,18 @@ throughout the fold; they don't have to bend.  They only exist for the
 convenience of the person who will be rendering the origami later on a graphics
 card, because they will only have to deal with triangles.
 
+## Functions to Implement
 
+* Plot locations of nodes, with node labels
+* Solve a node for crease angles
+* Iterate through nodes to complete the solution
+* Given a set of edges, find a set of triangles to represent the paper, 
+  using those edges
+* Given a set of crease angles, and a single triangle to hold fixed, 
+  find 3D locations of nodes
+* Render 3D origami, given triangles and 3D node locations.
+  This is harder, since it requires picking a camera viewpoint, colors, output
+  format, etc.
 
 
 
