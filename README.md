@@ -77,6 +77,8 @@ triangle can have a handedness that they would not otherwise have, if they were
 not based on multiple arcs.  This means we will be able to tell the difference
 between the clockwise and counter-clockwise solutions.  We will also find that
 both solutions can be valid (with the paper not self-intersecting) answers.
+If one solution has crease angles of A, B, C, then the other solution will have
+angles 360 - A, 360 - B, and 360 - C.
 
 Now, if we specify enough angles at one node that all crease angles are known,
 then those crease angles are now known at the nodes at other ends of each of

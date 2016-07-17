@@ -68,30 +68,39 @@ def plot_creasepattern(node_list, crease_list, crease_types=None):
 
 
 def get_neighbors(node_list, crease_list):
-    neighbors = {}
+    """
+    neighbor_angles[n][0] gives the angle in degrees between the nodes
+    neighbors[n][0] and neighbors[n][1].
+    """
+    neighbors = [[] for i in range(node_list.shape[0])]
+    neighbor_angles = [[] for i in range(node_list.shape[0])]
     for i in range(crease_list.shape[0]):    
         node0 = crease_list[i,0]
         node1 = crease_list[i,1]
-        if node0 in neighbors:
-            neighbors[node0].add(node1)
-        else:
-            neighbors[node0] = set([node1])
-        if node1 in neighbors:
-            neighbors[node1].add(node0)
-        else:
-            neighbors[node1] = set([node0])
-    
-    nodes = neighbors.keys()
-    for n in nodes:
-        node_neighbors = np.array(list(neighbors[n]), dtype='int32')
-        vectors = node_list[node_neighbors,:]
-        vectors = vectors - np.tile(node_list[n,:], (len(node_neighbors),1))
-        angles = np.arctan2(vectors[:,1], vectors[:,0])
-        indices = np.argsort(angles)
-        node_neighbors = node_neighbors[indices]
-        neighbors[n] = node_neighbors
+        neighbors[node0].append(node1)
+        neighbors[node1].append(node0)
 
-    return neighbors
+    for i in range(node_list.shape[0]):    
+        # Remove duplicate neighbors
+        node_neighbors = np.array(list(set(neighbors[i])), dtype='int32')
+        # Determine angles to each neighbor
+        vectors = node_list[node_neighbors,:]
+        vectors = vectors - np.tile(node_list[i,:], (len(node_neighbors),1))
+        angles = np.arctan2(vectors[:,1], vectors[:,0]) * 180 / np.pi
+        # Sort the neighbors by angle
+        indices = np.argsort(angles)
+        angles = angles[indices]
+        node_neighbors = node_neighbors[indices]
+        # Find angles between neighbors
+        angle_diffs = np.roll(angles, -1) - angles
+        #print i
+        #print np.roll(angles, -1)
+        #print angles
+        angle_diffs = np.mod(angle_diffs + 720, 360)
+        neighbors[i] = node_neighbors
+        neighbor_angles[i] = angle_diffs
+
+    return neighbors, neighbor_angles
 
 
 def foo():
@@ -99,8 +108,11 @@ def foo():
     #print node_list
     #print crease_list
 
-    neighbors = get_neighbors(node_list, crease_list) 
-    print neighbors
+    neighbors, neighbor_angles = get_neighbors(node_list, crease_list) 
+    for i in range(len(neighbors)):
+        print i
+        print neighbors[i]
+        print neighbor_angles[i]
 
     plot_creasepattern(node_list, crease_list, crease_types)
 
