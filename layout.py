@@ -1,4 +1,5 @@
 import re
+import numbers
 
 import numpy as np
 import matplotlib.pyplot as mpl
@@ -103,16 +104,113 @@ def get_neighbors(node_list, crease_list):
     return neighbors, neighbor_angles
 
 
+def solve_node(neighbor_angles, crease_angles):
+    """ 
+    neighbor_angles and crease_angles are python lists of the same length,
+    given in degrees.  neighbor_angles must sum to 360 degrees (only because we
+    start with flat paper).  Three of the crease_angles should be None; these
+    will be solved.
+
+    As seen from above the paper (on the +Z axis, looking in the -Z direction),
+    these are listed counter-clockwise.  neighbor_angles[0] is the arc length of
+    the spherical polygon edge between the creases corresponding to
+    crease_angles[0] and crease_angles[1].  So in order, counter-clockwise,
+    alternating between arc lengths (wedges of paper) and creases, we have:
+
+    crease_angles[0]    (crease goes to neighbors[i][0], by the way)
+    neighbor_angles[0]  (constant angle of paper between crease 0 and crease 1)
+    crease_angles[1]
+    neighbor_angles[1]
+    ...
+    crease_angles[n-1]
+    neighbor_angles[n-1]
+
+    where neighbor_angles[n-1] is the angle between the creases corresponding to
+    crease_angle[n-1] and crease_angle[0].
+
+    Returns -1 if there are more than 3 unknowns (underconstrained problem)
+    Returns -2 if there are 2 or fewer unknowns with inconsistent values
+      (an overconstrained problem)
+    Returns -3 if there are 3 unknowns but spherical triangle is unsolvable due
+      to arc lengths
+    Returns -4 if any neighbor_angle is > 180 degrees, which prevents folding
+    Returns -5 if any neighbor_angle is < 0, which should never occur
+    Returns a tuple of arrays of crease_angles with the two solutions, otherwise
+
+    If multiple errors occur, only the first one encountered determines the
+    return value.
+
+    When a needed edge length is exactly zero, the solution with crease angles
+    of 0, 90, and 90 is assumed (and requires the other two edge lengths to be
+    equal).  However, if all three edge lengths are zero, crease angles of 60,
+    60, and 60 are used.  In these cases, only one solution is returned, since
+    the other is not effectively different.
+    """
+
+    non_numbers = [not(isinstance(x, numbers.Number)) for x in crease_angles]
+    if sum(non_numbers) > 3:
+        return -1
+
+    for i in range(neighbor_angles):
+        if neighbor_angles[i] > 180.0:
+            return -4
+        if neighbor_angles[i] < 0:
+            return -5
+
+    # Solve the spherical triangle case.
+    eps = 1e-13  # angles below this are considered zero radians
+    if len(neighbor_angles) == 3:
+        # Convert to radians, for the benefit of numpy trig functions
+
+        # B = crease_angles[0] * np.pi / 180   # angle opposite side b
+        a = neighbor_angles[0] * np.pi / 180
+        # C = crease_angles[1] * np.pi / 180   # angle opposite side c
+        b = neighbor_angles[1] * np.pi / 180
+        # A = crease_angles[2] * np.pi / 180   # angle opposite side a
+        c = neighbor_angles[2] * np.pi / 180  
+
+        # Handle special cases
+        if a > b + c: return -3
+        if b > c + a: return -3
+        if c > a + b: return -3
+        if a < eps and b < eps and c < eps: return ([60, 60, 60],)
+        if a < eps: return ([90, 90, 0],)
+        if b < eps: return ([0, 90, 90],)
+        if c < eps: return ([90, 0, 90],)
+
+        # Solve spherical triangle
+        cosA = (np.cos(a) - np.cos(b) * np.cos(c)) / (np.sin(b) * np.sin(c))
+        cosB = (np.cos(b) - np.cos(c) * np.cos(a)) / (np.sin(c) * np.sin(a))
+        cosC = (np.cos(c) - np.cos(a) * np.cos(b)) / (np.sin(a) * np.sin(b))
+        crease_angles = [np.acos(cosB), np.acos(cosC), np.acos(cosA)]
+        # Convert back to degrees
+        crease_angles = [np.mod(x * 180 / np.pi + 360, 360) for x in crease_angles]
+        # Find alternate solution
+        opposites = [360 - x for x in crease_angles]
+
+        if sum(non_numbers) == 3:
+            return (crease_angles, opposites)
+        else:
+            # Check to see if this matches input crease angles?
+            return (crease_angles, opposites)
+
+
+    return crease_angles
+
+
 def foo():
     node_list, crease_list, crease_types = load_creasepattern('test.creasepattern')
     #print node_list
     #print crease_list
 
     neighbors, neighbor_angles = get_neighbors(node_list, crease_list) 
-    for i in range(len(neighbors)):
-        print i
-        print neighbors[i]
-        print neighbor_angles[i]
+    #for i in range(len(neighbors)):
+    #    print i
+    #    print neighbors[i]
+    #    print neighbor_angles[i]
+
+    i = 4
+
 
     plot_creasepattern(node_list, crease_list, crease_types)
 
