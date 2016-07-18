@@ -1,5 +1,6 @@
 import re
 import numbers
+import unittest
 
 import numpy as np
 import matplotlib.pyplot as mpl
@@ -104,6 +105,132 @@ def get_neighbors(node_list, crease_list):
     return neighbors, neighbor_angles
 
 
+def find_opposite_side(A, b, c):
+    """
+    Solve a spherical triangle for side a opposite angle A.  Sides b and c are
+    also given.  Return value will be between 0 and 180 degrees, inclusive.
+    Input and output are in degrees.
+    """
+    eps = 1e-13  # angles smaller than this in degrees are considered zero
+    if b < eps: return c
+    if c < eps: return b
+    d2r = np.pi / 180   # Convert degrees to radians
+    cos_a = np.cos(b * d2r) * np.cos(c * d2r) + \
+        np.sin(b * d2r) * np.sin(c * d2r) * np.cos(A * d2r)
+    a = np.arccos(cos_a)
+    # Convert back to degrees
+    a = np.mod(a * 180 / np.pi + 360, 360)
+    return a 
+
+
+def make_test_triangle(a_deg, b_deg, c_deg):
+    """
+    Return angles opposites sidea a, b, and c, in a spherical triangle.
+    Do internal tests for consistency.
+    """
+    # Convert to radians
+    a = a_deg * np.pi / 180
+    b = b_deg * np.pi / 180
+    c = c_deg * np.pi / 180
+    
+    cosA = (np.cos(a) - np.cos(b) * np.cos(c)) / (np.sin(b) * np.sin(c))
+    cosB = (np.cos(b) - np.cos(c) * np.cos(a)) / (np.sin(c) * np.sin(a))
+    cosC = (np.cos(c) - np.cos(a) * np.cos(b)) / (np.sin(a) * np.sin(b))
+    A = np.arccos(cosA) 
+    B = np.arccos(cosB)
+    C = np.arccos(cosC)
+
+    # Check that these are all equal...
+    ratio1 = np.sin(A) / np.sin(a)
+    ratio2 = np.sin(B) / np.sin(b)
+    ratio3 = np.sin(C) / np.sin(c)
+
+    eps = 1e-13
+    assert(np.fabs(ratio1 - ratio2) < eps)
+    assert(np.fabs(ratio2 - ratio3) < eps)
+    assert(np.fabs(ratio3 - ratio1) < eps)
+
+    # Convert back to degrees
+    A = A * 180 / np.pi
+    B = B * 180 / np.pi
+    C = C * 180 / np.pi
+
+    return A, B, C
+
+
+class TestSphericalTriangle(unittest.TestCase):
+    def setUp(self):
+        self.eps = 1e-13 
+
+    def test1(self):
+        a = find_opposite_side(10, 90, 90)
+        self.assertTrue(np.fabs(a - 10) < self.eps)
+
+        a = find_opposite_side(90, 90, 90)
+        self.assertTrue(np.fabs(a - 90) < self.eps)
+
+        a = find_opposite_side(180, 90, 90)
+        self.assertTrue(np.fabs(a - 180) < self.eps)
+
+        a = find_opposite_side(0, 90, 90)
+        self.assertTrue(np.fabs(a - 0) < self.eps)
+
+        # This doesn't work:
+        #a = find_opposite_side(270, 90, 90)
+        #self.assertTrue(np.fabs(a - 270) < self.eps)
+
+    def test2(self):
+        a = find_opposite_side(45, 0, 20)
+        self.assertTrue(np.fabs(a - 20) < self.eps)
+
+        a = find_opposite_side(45, 20, 0)
+        self.assertTrue(np.fabs(a - 20) < self.eps)
+
+        a = find_opposite_side(45, 0, 0)
+        self.assertTrue(np.fabs(a - 0) < self.eps)
+
+        a = find_opposite_side(0, 0, 0)
+        self.assertTrue(np.fabs(a - 0) < self.eps)
+
+        a = find_opposite_side(90, 0, 0)
+        self.assertTrue(np.fabs(a - 0) < self.eps)
+
+        a = find_opposite_side(0, 0, 20)
+        self.assertTrue(np.fabs(a - 20) < self.eps)
+
+        a = find_opposite_side(0, 20, 0)
+        self.assertTrue(np.fabs(a - 20) < self.eps)
+
+        a = find_opposite_side(90, 0, 20)
+        self.assertTrue(np.fabs(a - 20) < self.eps)
+
+        a = find_opposite_side(90, 20, 0)
+        self.assertTrue(np.fabs(a - 20) < self.eps)
+
+    def test3(self):
+        a = find_opposite_side(90, 180, 180)
+        self.assertTrue(np.fabs(a - 0) < self.eps)
+
+        a = find_opposite_side(0, 180, 180)
+        self.assertTrue(np.fabs(a - 0) < self.eps)
+
+        a = find_opposite_side(180, 180, 180)
+        self.assertTrue(np.fabs(a - 0) < self.eps)
+
+    def test4(self):
+        a = 30
+        b = 40
+        c = 50
+        A, B, C = make_test_triangle(a, b, c)
+
+        a2 = find_opposite_side(A, b, c)
+        b2 = find_opposite_side(B, c, a)
+        c2 = find_opposite_side(C, a, b)
+        self.assertTrue(np.fabs(a - a2) < self.eps)
+        self.assertTrue(np.fabs(b - b2) < self.eps)
+        self.assertTrue(np.fabs(c - c2) < self.eps)
+    
+
 def solve_node(neighbor_angles, crease_angles):
     """ 
     neighbor_angles and crease_angles are python lists of the same length,
@@ -182,7 +309,7 @@ def solve_node(neighbor_angles, crease_angles):
         cosA = (np.cos(a) - np.cos(b) * np.cos(c)) / (np.sin(b) * np.sin(c))
         cosB = (np.cos(b) - np.cos(c) * np.cos(a)) / (np.sin(c) * np.sin(a))
         cosC = (np.cos(c) - np.cos(a) * np.cos(b)) / (np.sin(a) * np.sin(b))
-        crease_angles = [np.acos(cosB), np.acos(cosC), np.acos(cosA)]
+        crease_angles = [np.arccos(cosB), np.arccos(cosC), np.arccos(cosA)]
         # Convert back to degrees
         crease_angles = [np.mod(x * 180 / np.pi + 360, 360) for x in crease_angles]
         # Find alternate solution
@@ -193,6 +320,9 @@ def solve_node(neighbor_angles, crease_angles):
         else:
             # Check to see if this matches input crease angles?
             return (crease_angles, opposites)
+    else:
+        # Implement recursion here.
+        pass
 
 
     return crease_angles
@@ -216,12 +346,9 @@ def foo():
 
 
 
-
-    
-
-
 if __name__ == "__main__":
-    foo()
+    #foo()
+    unittest.main()
 
 
 
