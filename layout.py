@@ -141,9 +141,9 @@ def solve_triangle_angles(a_deg, b_deg, c_deg):
     assert(a >= 0)
     assert(b >= 0)
     assert(c >= 0)
-    assert(a <= b + c)
-    assert(b <= c + a)
-    assert(c <= a + b)
+    assert(a <= b + c + eps)  # Allow a little noise
+    assert(b <= c + a + eps)  # Allow a little noise
+    assert(c <= a + b + eps)  # Allow a little noise
     if a < eps and b < eps and c < eps:
         A, B, C = (60, 60, 60)
     elif a < eps:
@@ -157,6 +157,13 @@ def solve_triangle_angles(a_deg, b_deg, c_deg):
         cosA = (np.cos(a) - np.cos(b) * np.cos(c)) / (np.sin(b) * np.sin(c))
         cosB = (np.cos(b) - np.cos(c) * np.cos(a)) / (np.sin(c) * np.sin(a))
         cosC = (np.cos(c) - np.cos(a) * np.cos(b)) / (np.sin(a) * np.sin(b))
+        # Clean up numerical noise before arccos
+        if cosA > 1: cosA = 1
+        if cosA < -1: cosA = -1
+        if cosB > 1: cosB = 1
+        if cosB < -1: cosB = -1
+        if cosC > 1: cosC = 1
+        if cosC < -1: cosC = -1
         A = np.arccos(cosA) 
         B = np.arccos(cosB)
         C = np.arccos(cosC)
@@ -166,6 +173,7 @@ def solve_triangle_angles(a_deg, b_deg, c_deg):
         ratio2 = np.sin(B) / np.sin(b)
         ratio3 = np.sin(C) / np.sin(c)
 
+        eps = 1e-4
         assert(np.fabs(ratio1 - ratio2) < eps)
         assert(np.fabs(ratio2 - ratio3) < eps)
         assert(np.fabs(ratio3 - ratio1) < eps)
@@ -316,6 +324,11 @@ def solve_node(neighbor_angles, crease_angles):
     60, and 60 are used.  In these cases, only one solution is returned, since
     the other is not effectively different.
     """
+    neighbor_angles = list(neighbor_angles)
+
+    print 'crease_angles', crease_angles
+    print 'neighbor_angles', neighbor_angles
+    print
 
     non_numbers = [not(isinstance(x, numbers.Number)) for x in crease_angles]
     if sum(non_numbers) > 3:
@@ -323,14 +336,14 @@ def solve_node(neighbor_angles, crease_angles):
 
     assert(len(neighbor_angles) > 2)
 
-    for i in range(neighbor_angles):
+    for i in range(len(neighbor_angles)):
         if neighbor_angles[i] > 180.0:
             return -4
         if neighbor_angles[i] < 0:
             return -5
 
     # Solve the spherical triangle case.
-    eps = 1e-13  # angles below this are considered zero radians
+    eps = 1e-7  # angles below this are considered zero radians
     if len(neighbor_angles) == 3:
         # Convert to radians, for the benefit of numpy trig functions
 
@@ -342,9 +355,9 @@ def solve_node(neighbor_angles, crease_angles):
         c = neighbor_angles[2] * np.pi / 180  
 
         # Handle special cases
-        if a > b + c: return -3
-        if b > c + a: return -3
-        if c > a + b: return -3
+        if a > b + c + eps: return -3
+        if b > c + a + eps: return -3
+        if c > a + b + eps: return -3
         if a < eps and b < eps and c < eps: return ([60, 60, 60],)
         if a < eps: return ([90, 90, 0],)
         if b < eps: return ([0, 90, 90],)
@@ -354,11 +367,22 @@ def solve_node(neighbor_angles, crease_angles):
         cosA = (np.cos(a) - np.cos(b) * np.cos(c)) / (np.sin(b) * np.sin(c))
         cosB = (np.cos(b) - np.cos(c) * np.cos(a)) / (np.sin(c) * np.sin(a))
         cosC = (np.cos(c) - np.cos(a) * np.cos(b)) / (np.sin(a) * np.sin(b))
+        # Clean up numerical noise
+        if cosA > 1: cosA = 1
+        if cosA < -1: cosA = -1
+        if cosB > 1: cosB = 1
+        if cosB < -1: cosB = -1
+        if cosC > 1: cosC = 1
+        if cosC < -1: cosC = -1
         crease_angles = [np.arccos(cosB), np.arccos(cosC), np.arccos(cosA)]
         # Convert back to degrees
         crease_angles = [np.mod(x * 180 / np.pi + 360, 360) for x in crease_angles]
         # Find alternate solution
         opposites = [360 - x for x in crease_angles]
+
+        print 'crease angles returned', crease_angles
+        print 'crease angles returned', opposites 
+        print
 
         if sum(non_numbers) == 3:
             return (crease_angles, opposites)
@@ -370,6 +394,7 @@ def solve_node(neighbor_angles, crease_angles):
         neighbor_angles2 = copy.copy(neighbor_angles)
         crease_angles2 = copy.copy(crease_angles)
 
+        i = 0
         while not(isinstance(crease_angles2[i], numbers.Number)):
             i = i + 1
 
@@ -378,14 +403,41 @@ def solve_node(neighbor_angles, crease_angles):
 
         # This still works if i == 0
         new_side = find_opposite_side(angle, neighbor_angles2[i-1],
-            neighbor_angles[i])
+            neighbor_angles2[i])
+        """
+                           +  crease_angles2[i+1]
+                          / \
+                         / B \
+                        /     \  neighbor_angles2[i]
+             new_side  /       \
+                      /         \
+                     /           \
+                    / C         A \
+crease_angles2[i-1]+---------------+ crease_angles2[i]
+
+                   neighbor_angles2[i-1]
+        """
 
         # Get all the angles
         A, B, C = solve_triangle_angles(new_side, neighbor_angles2[i-1],
-            neighbor_angles[i])
+            neighbor_angles2[i])
+        
+        if np.fabs(angle - A) > eps:
+            print new_side, neighbor_angles2[i-1], neighbor_angles2[i]
+            print A, B, C
+            print angle
+            print A - angle
         assert(np.fabs(angle - A) < eps)
 
+        if isinstance(crease_angles2[i-1], numbers.Number):
+            crease_angles2[i-1] -= C
+        nc = len(crease_angles2)
+        if isinstance(crease_angles2[i % nc], numbers.Number):
+            crease_angles2[i % nc] -= B
+
         neighbor_angles2[i-1] = new_side
+        #print neighbor_angles2
+        #print type(neighbor_angles2)
         del neighbor_angles2[i]
 
         # Now we can recurse.
@@ -394,7 +446,7 @@ def solve_node(neighbor_angles, crease_angles):
         crease_angles = answers[0]
         crease_angles.insert(i, A)
         crease_angles[i-1] = crease_angles[i-1] + C
-        if i+1 < len(crease_angles):
+        if i+1 <= len(crease_angles):
             crease_angles[i+1] = crease_angles[i+1] + B
         else:
             crease_angles[0] = crease_angles[0] + B
@@ -403,14 +455,19 @@ def solve_node(neighbor_angles, crease_angles):
             opposites = answers[1]
             opposites.insert(i, A)
             opposites[i-1] = opposites[i-1] + C
-            if i+1 < len(opposites):
+            if i+1 <= len(opposites):
                 opposites[i+1] = opposites[i+1] + B
             else:
                 opposites[0] = opposites[0] + B
        
         if len(answers) == 1:
+            print 'crease angles returned', crease_angles
+            print
             return (crease_angles,)
         else:
+            print 'crease angles returned', crease_angles
+            print 'crease angles returned', opposites 
+            print
             return (crease_angles, opposites)
 
 
@@ -426,15 +483,21 @@ def foo():
     #    print neighbor_angles[i]
 
     i = 4
+    print neighbors[i]
+    print neighbor_angles[i]
 
+    angle = 15
+    crease_angles = [angle, 180, angle, None, angle, 180, angle, None]
+    ans = solve_node(neighbor_angles[i], crease_angles)
+    print ans
 
     plot_creasepattern(node_list, crease_list, crease_types)
 
 
 
 if __name__ == "__main__":
-    #foo()
-    unittest.main()
+    foo()
+    #unittest.main()
 
 
 
