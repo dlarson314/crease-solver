@@ -494,9 +494,54 @@ def foo():
     plot_creasepattern(node_list, crease_list, crease_types)
 
 
+def foo2():
+    # From http://dzhelil.info/triangle/delaunay.html
+    # (not my code)
+    import triangle
+    import triangle.plot as plot
+
+    face = triangle.get_data('face')
+    print face
+
+    ax1 = mpl.subplot(121, aspect='equal')
+    plot.plot(ax1, **face)
+
+    t = triangle.triangulate(face, 'p')
+
+    ax2 = mpl.subplot(122, sharex=ax1, sharey=ax1)
+    triangle.plot.plot(ax2, **t)
+
+    mpl.show()
+
+
+def foo3():
+    import triangle
+    import triangle.plot as plot
+
+    node_list, crease_list, crease_types = load_creasepattern('test.creasepattern')
+    #print node_list
+    #print crease_list
+
+    paper = {}
+    paper['vertices'] = node_list 
+    paper['segments'] = crease_list
+
+    ax1 = mpl.subplot(121, aspect='equal')
+    plot.plot(ax1, **paper)
+    
+    t = triangle.triangulate(paper, 'p')
+    print t
+
+    ax2 = mpl.subplot(122, sharex=ax1, sharey=ax1)
+    plot.plot(ax2, **t)
+
+    mpl.show()
+
 
 if __name__ == "__main__":
-    foo()
+    #foo()
+    #foo2()
+    foo3()
     #unittest.main()
 
 

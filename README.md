@@ -110,7 +110,9 @@ triangulation to make sure that the square of paper is broken down into
 triangles.  New edges/creases formed in this process can be kept at 180 degrees
 throughout the fold; they don't have to bend.  They only exist for the
 convenience of the person who will be rendering the origami later on a graphics
-card, because they will only have to deal with triangles.
+card, because they will only have to deal with triangles.  Constrained Delaunay
+triangulations don't seem to be built into python, so I will use the external
+package "triangle", available here: http://dzhelil.info/triangle/
 
 ## Functions to Implement
 
