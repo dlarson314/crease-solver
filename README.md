@@ -87,6 +87,52 @@ To solve for the entire set of crease angles, we will need to search for a
 solvable node (with only 3 unknown crease angles), solve it, and then check to
 see if the new known crease angles allow crease angle solutions at other nodes.
 
+## Solving for Node Locations from Crease Angles
+
+Once we know all of the crease angles, we will want to solve for the 3D
+locations of each node.  We pick some triangle to remain fixed in the original
+plane of the unfolded paper, or give it some known location.  Then we locate all
+the rest of the triangles with respect to that one.  To reduce numerical error,
+we pick the first reference triangle to be one close to the center of the paper.
+
+Then, we determine a reference frame for each triangular section of paper.  The
+reference frame consists of three unit vectors, two of which are in the plane of
+the paper, and one of which is orthogonal to the paper.  We can choose the two
+in the plane of the paper to be ones originally pointing (before folding) in the
+directions of the X and Y axes.  The reference frame for the first fixed
+triangle will be unit vectors in the X, Y, and Z axes.  To obtain a reference
+frame for a triangle adjacent to a known triangle, rotate all three unit vectors
+by (crease angle - 180) around the edge between the two triangles.  We take a
+right handed rotation around the edge direction determined by traversing the
+nodes of the known triangle in a counter-clockwise fashion, as seen from the top.
+(By this method, the first two unit vectors in the reference frame travel by parallel
+transport from one triangle to the next, and the original flatness of the paper
+[lack of curvature] means there should be no ambiguity arising from the order in
+which we traverse triangles.)
+
+Determining the reference frame for all triangles involves a breadth-first
+search among neighboring triangles, starting from the original triangle, 
+propagating the reference frame as we go.
+
+This method will accumulate some small amount of numerical error.  If we want to
+reduce that error, we can write down a set of equations in the reference frame
+matrices (thought of as 3x3 matrices) that include small error terms in 
+infinitesimal (or very small) rotations.  There will be one matrix equation for
+every crease between two triangles.  Each matrix equation will be 9 actual
+equations.  This can be solved by linear least squares for the small rotation
+adjustments that make a best fit to all crease angles.  If that's not good
+enough, we can re-orthogonalize the reference frames and repeat the procedure.
+
+Once the reference frames are known for each triangle, we can either do a
+similar propagation of node locations away from the reference triangle, or we
+can write down three sets of linear least squares problems (one each for the X,
+Y, and Z coordinates of each node), based on the reference frames and the 2D
+vectors along each crease.  This will be only one equation per crease.  There
+will be an extra equation giving the X, Y, or Z coordinate of a known node.
+I'll probably use the linear least squares methods, because I don't plan on
+having that many creases, and I like reducing numerical error.  However, it is
+unclear whether the accumulated numerical error will be significant.
+
 ## Data Structures
 
 These data structures will be useful in the code.
