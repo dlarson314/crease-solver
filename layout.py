@@ -137,7 +137,8 @@ def solve_triangle_angles(a_deg, b_deg, c_deg):
     Do internal tests for consistency.
 
     Later: Choose equations to solve based on numerical accuracy concerns.
-    Don't just use law of cosines, as I do below.
+    Don't just use law of cosines, as I do below; use law of sines when A, B, or
+    C is close to 0 or 180 degrees.
     """
     # Convert to radians
     a = a_deg * np.pi / 180
